@@ -109,6 +109,9 @@ class PokeCatcher(object):
         return ret
 
     def do_catch_pokemon(self, encounter_id, spawn_point_id, capture_probability, pokemon):
+        if self.parent.config.only_to_keep and (pokemon.pokemon_id not in self.parent.config.keep_pokemon_ids):
+            self.log.info("Skipping pokemon not in catch list: %s", pokemon)
+            return False
         self.log.info("Catching Pokemon: %s", pokemon)
         catch_attempt = self.attempt_catch(encounter_id, spawn_point_id, capture_probability)
         capture_status = catch_attempt.get('status', -1)

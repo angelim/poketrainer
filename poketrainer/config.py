@@ -39,6 +39,7 @@ class Config(object):
         greatball_percent = config.get("CAPTURE", {}).get("USE_GREATBALL_IF_PERCENT", 50)
         ultraball_percent = config.get("CAPTURE", {}).get("USE_ULTRABALL_IF_PERCENT", 50)
         use_masterball = config.get("CAPTURE", {}).get("USE_MASTERBALL", False)
+        self.only_to_keep = config.get("CAPTURE", {}).get("ONLY_TO_KEEP", False)
         self.ball_priorities = [pokeball_percent, greatball_percent, ultraball_percent, use_masterball]
 
         self.min_items = {}
