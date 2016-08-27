@@ -138,6 +138,28 @@ def get_api_rpc(username):
     c.connect("tcp://127.0.0.1:%i" % sock_port)
     return c
 
+def get_pokemons(items, score_method="CP"):
+    pokemons_data = []
+    candy = defaultdict(int)
+    for item in items:
+        item = item['inventory_item_data']
+        pokemon = item.get("pokemon_data", {})
+        if "pokemon_id" in pokemon:
+            pokemons_data.append(pokemon)
+        if 'player_stats' in item:
+            player = item['player_stats']
+        if "candy" in item:
+            filled_family = str(item['candy']['family_id']).zfill(4)
+            candy[filled_family] += item['candy'].get("candy", 0)
+    # add candy back into pokemon json
+    pokemons = []
+    for pokemon in pokemons_data:
+        pkmn = Pokemon(pokemon, player['level'], score_method)
+        pkmn.candy = candy[str(pkmn.family_id).zfill(4)]
+        pkmn.set_max_cp(TCPM_VALS[int(player['level'] * 2 + 1)])
+        pkmn.score = format(pkmn.score, '.2f').rstrip('0').rstrip('.')  # makes the value more presentable to the user
+        pokemons.append(pkmn)
+    return pokemons
 
 @app.route("/favicon.ico")
 def favicon():
@@ -161,40 +183,28 @@ def status(username):
     latlng = "%f,%f" % (latlng[0], latlng[1])
 
     items = json.loads(c.get_raw_inventory())
-    pokemons_data = []
-    candy = defaultdict(int)
     for item in items:
         item = item['inventory_item_data']
-        pokemon = item.get("pokemon_data", {})
-        if "pokemon_id" in pokemon:
-            pokemons_data.append(pokemon)
         if 'player_stats' in item:
             player = item['player_stats']
-        if "candy" in item:
-            filled_family = str(item['candy']['family_id']).zfill(4)
-            candy[filled_family] += item['candy'].get("candy", 0)
-    # add candy back into pokemon json
-    pokemons = []
-    for pokemon in pokemons_data:
-        pkmn = Pokemon(pokemon, player['level'], options['SCORE_METHOD'])
-        pkmn.candy = candy[pkmn.family_id]
-        pkmn.set_max_cp(TCPM_VALS[int(player['level'] * 2 + 1)])
-        pkmn.score = format(pkmn.score, '.2f').rstrip('0').rstrip('.')  # makes the value more presentable to the user
-        pokemons.append(pkmn)
+    pokemons = get_pokemons(items, options['SCORE_METHOD'])
     player['username'] = player_json['player_data']['username']
     player['level_xp'] = player.get('experience', 0) - player.get('prev_level_xp', 0)
     with open('./data_dumps/' + str(username) + '.json') as json_data:
         d = json.load(json_data)['GET_PLAYER']['player_data']['hourly_exp']
     player['hourly_exp'] = d  # Not showing up in inv or player data
     player['goal_xp'] = player.get('next_level_xp', 0) - player.get('prev_level_xp', 0)
-    return render_template('status.html', pokemons=pokemons, player=player, currency="{:,d}".format(currency), candy=candy, latlng=latlng, attacks=attacks, username=username, options=options)
+    return render_template('status.html', pokemons=pokemons, player=player, currency="{:,d}".format(currency), latlng=latlng, attacks=attacks, username=username, options=options)
 
 
 @app.route("/<username>/pokemon")
 def pokemon(username):
     s = get_api_rpc(username)
+    items = json.loads(s.get_raw_inventory())
     try:
-        pokemons = json.loads(s.get_caught_pokemons_json())
+        pokemons = defaultdict(list)
+        for poke in get_pokemons(items):
+            pokemons[poke.pokemon_id].append(poke)
     except ValueError:
         # FIXME Use logger instead of print statements!
         print("Not valid Json")
@@ -215,13 +225,14 @@ def inventory(username):
 
 
 @app.route("/<username>/transfer/<p_id>")
-def transfer(username, p_id):
+@app.route("/<username>/transfer/<p_id>/<p_return_to>")
+def transfer(username, p_id, p_return_to="status"):
     c = get_api_rpc(username)
     if c and c.release_pokemon_by_id(p_id) == 1:
         flash("Released")
     else:
         flash("Failed!")
-    return redirect(url_for('status', username=username))
+    return redirect(url_for(p_return_to, username=username))
 
 
 @app.route("/<username>/snipe/<latlng>")

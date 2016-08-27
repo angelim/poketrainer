@@ -6,13 +6,20 @@
   {% for pokemon in pokemons.values() %}
   <div class="panel panel-default">
     <div class="panel-heading">
-      <img style="max-height: 50px;" src={{ url_for( 'static', filename="pokemon/%03d.png" % pokemon[0].get('pokemon_id',0)) }}/>
-      {{pokemon[0].get('pokemon_type', "Unknown!")}}
+      <img style="max-height: 50px;" src={{ url_for( 'static', filename="pokemon/%03d.png" % pokemon[0].pokemon_id) }}/>
+      {{pokemon[0].pokemon_type}}:{{pokemon | length}} - candy: {{pokemon[0].candy}}
+      {% if pokemon[0].candy_needed_to_evolve != 0 %}
+        - Evolutions:
+        {% set needed = pokemon[0].candy_needed_to_evolve %}
+        {% set available = pokemon[0].candy %}
+        {{(available/needed)|int}}
+      {% endif %}
     </div>
     <ul class="list-group">
     {% for unique in pokemon %}
       <li class="list-group-item">
-        cp: {{unique.get('cp',-1)}}
+        cp: {{unique.cp}}
+        <a href="{{ url_for('transfer', username = username, p_id = unique.id, p_return_to = 'pokemon')}}">Transfer</a></td>
       </li>
     {% endfor %}
   </ul>
