@@ -19,6 +19,7 @@ class PokeCatcher(object):
     def __init__(self, parent):
         self.parent = parent
         self.encountered_pokemons = TTLCache(maxsize=120, ttl=self.parent.map_objects.get_api_rate_limit() * 2)
+        self.skipped_pokemons = TTLCache(maxsize=120, ttl=600)
 
         self.log = create_logger(__name__, self.parent.config.log_colors["poke_catcher".upper()])
 
@@ -32,6 +33,9 @@ class PokeCatcher(object):
         if catch_attempt > self.parent.config.max_catch_attempts:
             self.log.warn("You have reached the maximum amount of catch attempts. Gave up after %s times",
                           catch_attempt)
+    
+    def seen_pokemons(self):
+        return self.encountered_pokemons.keys() + self.skipped_pokemons.keys()
 
     def catch_near_pokemon(self):
         if self.parent.should_catch_pokemon is False:
@@ -40,7 +44,7 @@ class PokeCatcher(object):
         map_cells = self.parent.map_objects.nearby_map_objects().get('responses', {}).get('GET_MAP_OBJECTS', {})\
             .get('map_cells', [])
         pokemons = flat_map(lambda c: c.get('catchable_pokemons', []), map_cells)
-        pokemons = filter(lambda p: (p['encounter_id'] not in self.encountered_pokemons), pokemons)
+        pokemons = filter(lambda p: (p['encounter_id'] not in self.seen_pokemons()), pokemons)
 
         # catch first pokemon:
         origin = self.parent.get_position()
@@ -168,6 +172,12 @@ class PokeCatcher(object):
             self.log.info("Could not catch pokemon:  %s, status: %s", pokemon, capture_status)
             return False
 
+    def skip_encounter(self, encounter_id, pokemon_data):
+        pokemon = Pokemon(pokemon_data)
+        self.skipped_pokemons[encounter_id] = pokemon_data
+        self.parent.pokemon_skipped += 1
+        self.log.info("Skipping... Pokemon not in catch list: %s in %s", pokemon.pokemon_type, encounter_id)
+
     def encounter_pokemon(self, pokemon_data, retry=False,
                           new_loc=None):  # take in a MapPokemon from MapCell.catchable_pokemons
         # Update Inventory to make sure we can catch this mon
@@ -181,6 +191,9 @@ class PokeCatcher(object):
             # begin encounter_id
             position = self.parent.api.get_position()
             pokemon = Pokemon(pokemon_data)
+            if self.parent.has_catch_restrictions and pokemon.pokemon_id not in self.parent.config.catch_pokemon_ids:
+                self.skip_encounter(encounter_id, pokemon_data)
+                return False
             self.log.info("Trying initiate catching Pokemon: %s", pokemon.pokemon_type)
             self.parent.sleep(1.0 + self.parent.config.extra_wait)
             encounter = self.parent.api.encounter(encounter_id=encounter_id,

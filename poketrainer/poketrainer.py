@@ -49,6 +49,7 @@ class Poketrainer(object):
 
         # timers, counters and triggers
         self.pokemon_caught = 0
+        self.pokemon_skipped = 0
         self.forts_spun = 0
         self._error_counter = 0
         self._error_threshold = 10
@@ -60,10 +61,12 @@ class Poketrainer(object):
         self._farm_mode_triggered = False
         self.running = False
 
+
         # objects, order is important!
         self.config = None
         self._load_config()
         self._add_file_logger()
+        self.has_catch_restrictions = len(self.config.catch_pokemon_ids) > 0
 
         self.log = create_logger(__name__, self.config.log_colors["poketrainer".upper()])
 
@@ -383,9 +386,7 @@ class Poketrainer(object):
         if 'GET_PLAYER' in responses:
             self.player = Player(responses.get('GET_PLAYER', {}).get('player_data', {}))
             self.push_to_web('player', 'updated', self.player.__dict__)
-            self.log.info("Player Info: {0}, Pokemon Caught in this run: {1}, forts spun: {2}".format(
-                self.player, self.pokemon_caught, self.forts_spun
-            ))
+            self.print_summary()
 
         if 'GET_INVENTORY' in responses:
 
@@ -509,10 +510,13 @@ class Poketrainer(object):
         self._heartbeat_number += 1
         return True
 
-    def before_exit(self):
-        self.log.info("Player Info: {0}, Pokemon Caught in this run: {1}, forts spun: {2}".format(
-            self.player, self.pokemon_caught, self.forts_spun
+    def print_summary(self):
+        self.log.info("Player Info: {0}, Pokemon Caught in this run: {1}, forts spun: {2}, Pokemon Skipped: {3}".format(
+            self.player, self.pokemon_caught, self.forts_spun, self.pokemon_skipped
         ))
+
+    def before_exit(self):
+        self.print_summary()
         self.log.info("Player Stats: {}".format(self.player_stats))
         self.log.info("Player Inventory: %s", self.inventory)
 

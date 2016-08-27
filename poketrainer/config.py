@@ -9,7 +9,6 @@ from library.api.pgoapi.protos.POGOProtos.Inventory import \
 
 from .locale import change_locale
 
-
 class Config(object):
 
     def __init__(self, config, cli_args):
@@ -71,6 +70,9 @@ class Config(object):
                                                                          1)  # Keep atleast one of everything.
         self.keep_pokemon_ids = map(lambda x: getattr(Enums, x),
                                     config.get("POKEMON_CLEANUP", {}).get("KEEP_POKEMON_NAMES", []))
+
+        self.catch_pokemon_ids = map(lambda x: getattr(Enums, x),
+                                    config.get("CAPTURE", {}).get("CATCH_ONLY", []))
 
         self.release_method = config.get("POKEMON_CLEANUP", {}).get("RELEASE_METHOD", "CLASSIC")
         self.release_method_conf = config.get("POKEMON_CLEANUP", {}).get("RELEASE_METHOD_" + self.release_method, {})
