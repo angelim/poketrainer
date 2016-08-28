@@ -1,4 +1,4 @@
-# Post-Unknown6 changes:
+# Post-Unknown6 changes: [andrefap]
 
 # The current version of the bot currently requires the encrypt library. Hop on the #poketrainer slack to find out more.
 ### Long story short, you need to make `libencrypt.so` or `encrypt.dll` by finding the `c_code` folder of one of the `unknown6` repositories and running `make clean; make`. You then put the built files into the same folder as pokecli.py and run it with:
