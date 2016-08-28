@@ -172,11 +172,10 @@ class PokeCatcher(object):
             self.log.info("Could not catch pokemon:  %s, status: %s", pokemon, capture_status)
             return False
 
-    def skip_encounter(self, encounter_id, pokemon_data):
-        pokemon = Pokemon(pokemon_data)
-        self.skipped_pokemons[encounter_id] = pokemon_data
+    def skip_encounter(self, encounter_id, pokemon_type, source="spawnpoint"):
+        self.skipped_pokemons[encounter_id] = pokemon_type
         self.parent.pokemon_skipped += 1
-        self.log.info("Skipping... Pokemon not in catch list: %s in %s", pokemon.pokemon_type, encounter_id)
+        self.log.info("Skipping... Pokemon from %s not in catch list: %s in %s", source, pokemon_type, encounter_id)
 
     def encounter_pokemon(self, pokemon_data, retry=False,
                           new_loc=None):  # take in a MapPokemon from MapCell.catchable_pokemons
@@ -192,7 +191,7 @@ class PokeCatcher(object):
             position = self.parent.api.get_position()
             pokemon = Pokemon(pokemon_data)
             if self.parent.has_catch_restrictions and pokemon.pokemon_id not in self.parent.config.catch_pokemon_ids:
-                self.skip_encounter(encounter_id, pokemon_data)
+                self.skip_encounter(encounter_id, pokemon.pokemon_type)
                 return False
             self.log.info("Trying initiate catching Pokemon: %s", pokemon.pokemon_type)
             self.parent.sleep(1.0 + self.parent.config.extra_wait)
@@ -243,6 +242,11 @@ class PokeCatcher(object):
             fort_id = lureinfo['fort_id']
             position = self.parent.get_position()
             self.log.debug("At Fort with lure %s".encode('utf-8', 'ignore'), lureinfo)
+
+            if self.parent.has_catch_restrictions and lureinfo.get('active_pokemon_id', 0) not in self.parent.config.catch_pokemon_ids:
+                self.skip_encounter(encounter_id, POKEMON_NAMES.get(str(lureinfo.get('active_pokemon_id', 0)), "NA"),"lure")
+                return False
+
             self.log.info("At Fort with Lure AND Active Pokemon %s",
                           POKEMON_NAMES.get(str(lureinfo.get('active_pokemon_id', 0)), "NA"))
             self.parent.sleep(1.0 + self.parent.config.extra_wait)
