@@ -185,7 +185,7 @@ class PokeCatcher(object):
             and not self.too_long_without_catch()
     
     def too_long_without_catch(self):
-        return (time() - self.last_catch) > self.parent.config.dont_skip_after * 60
+        return (time() - self.last_catch) > self.parent.config.dont_skip_after_sec
 
     def encounter_pokemon(self, pokemon_data, retry=False,
                           new_loc=None):  # take in a MapPokemon from MapCell.catchable_pokemons

@@ -15,7 +15,7 @@ from helper.exceptions import TooManyEmptyResponses
 from .location import distance_in_meters, filtered_forts, get_route
 from .poke_utils import get_item_name
 from .walker.base import WalkerFactory
-import pdb
+from time import time
 
 class FortWalker(object):
     def __init__(self, parent):
@@ -34,11 +34,13 @@ class FortWalker(object):
         self.spinnable_cached_forts = []
         self.cache_is_sorted = self.parent.config.cache_is_sorted
         self.use_cache = self.parent.config.use_cache
+        self.last_spin = 0
 
         self.log = create_logger(__name__, self.parent.config.log_colors["fort_walker".upper()])
 
         self.walker_factory = WalkerFactory()
         self.walker = None
+        self._soft_fort_ban = False
 
     """ provide log function for children, so all logs are sent from this module """
 
@@ -74,11 +76,8 @@ class FortWalker(object):
         return self.walker
     
     def should_skip_spin(self):
-        if self.parent.config.stop_spinning_after > 0:
-            if self.parent.inventory.item_count == 0:
-                self.parent.inventory.update_player_inventory()
-            return self.parent.inventory.item_count > self.parent.config.stop_spinning_after
-        return False
+        return self._soft_fort_ban \
+                or ((time() - self.last_spin) < self.parent.config.min_wait_before_spin_sec)
 
     def get_forts(self):
         forts = []
@@ -150,12 +149,8 @@ class FortWalker(object):
                 )
                 self.wander_steps = route_data['steps']
             elif nearest_fort_dis <= 40.00:
-                # pdb.set_trace()
-                if self.should_skip_spin():
-                    self.log.info("Enough resources. No need to spin fort.")
-                else:
-                    self.do_fort_spin(nearest_fort, player_postion=self.parent.api.get_position(),
-                                  fort_distance=nearest_fort_dis)
+                self.do_fort_spin(nearest_fort, player_postion=self.parent.api.get_position(),
+                        fort_distance=nearest_fort_dis)
                 if 'lure_info' in nearest_fort and self.parent.should_catch_pokemon:
                     self.parent.poke_catcher.disk_encounter_pokemon(nearest_fort['lure_info'])
 
@@ -167,6 +162,9 @@ class FortWalker(object):
             self._walk_back_to_origin()
 
     def do_fort_spin(self, fort, player_postion, fort_distance):
+        if self.should_skip_spin():
+            self.log.info("Fort skipped.")
+            return
         self.parent.sleep(0.2 + self.parent.config.extra_wait)
         res = self.parent.api.fort_search(fort_id=fort['id'], fort_latitude=fort['latitude'],
                                           fort_longitude=fort['longitude'],
@@ -177,6 +175,7 @@ class FortWalker(object):
             res = res.get('responses', {}).get('FORT_SEARCH', {})
             result = res.pop('result', -1)
         if result == 1:
+            self.last_spin = time()
             self.log.info("Visiting fort... (http://maps.google.com/maps?q=%s,%s)", fort['latitude'], fort['longitude'])
             if "items_awarded" in res:
                 items = defaultdict(int)
@@ -201,6 +200,7 @@ class FortWalker(object):
             self.parent.forts_spun += 1
         elif result == 2:
             self.log.debug("Could not spin fort -  fort not in range %s", res)
+            self._soft_fort_ban = True
             self.log.info("Could not spin fort http://maps.google.com/maps?q=%s,%s, Not in Range %s", fort['latitude'],
                           fort['longitude'], fort_distance)
         elif result == 3:

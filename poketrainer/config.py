@@ -29,7 +29,7 @@ class Config(object):
         self.predefined_path = config.get("PREDEFINED_PATH", [])
 
         self.step_size = config.get("BEHAVIOR", {}).get("STEP_SIZE", 200)
-        self.stop_spinning_after = config.get("BEHAVIOR", {}).get("STOP_SPINNING_AFTER", -1)
+        self.min_wait_before_spin_sec = config.get("BEHAVIOR", {}).get("MIN_WAIT_BEFORE_SPIN_SEC", 0)
         self.wander_steps = config.get("BEHAVIOR", {}).get("WANDER_STEPS", 0)
         self.extra_wait = config.get("BEHAVIOR", {}).get("EXTRA_WAIT", 0.3)
         self.sleep_mult = config.get("BEHAVIOR", {}).get("SLEEP_MULT", 1.5)
@@ -42,7 +42,7 @@ class Config(object):
         self.catch_pokemon_limit = config.get("BEHAVIOR", {}).get("CATCH_POKEMON_LIMIT", -1)
         self.fort_spin_limit = config.get("BEHAVIOR", {}).get("FORT_SPIN_LIMIT", -1)
 
-        self.dont_skip_after = config.get("CAPTURE", {}).get("DONT_SKIP_AFTER", 10)
+        self.dont_skip_after_sec = config.get("CAPTURE", {}).get("DONT_SKIP_AFTER_SEC", 0)
         self.should_catch_pokemon = config.get("CAPTURE", {}).get("CATCH_POKEMON", True)
         self.max_catch_attempts = config.get("CAPTURE", {}).get("MAX_CATCH_ATTEMPTS", 10)
         self.min_failed_attempts_before_using_berry = config.get("CAPTURE", {}).get("MIN_FAILED_ATTEMPTS_BEFORE_USING_BERRY", 3)
