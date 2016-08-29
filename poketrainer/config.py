@@ -29,6 +29,7 @@ class Config(object):
         self.predefined_path = config.get("PREDEFINED_PATH", [])
 
         self.step_size = config.get("BEHAVIOR", {}).get("STEP_SIZE", 200)
+        self.stop_spinning_after = config.get("BEHAVIOR", {}).get("STOP_SPINNING_AFTER", -1)
         self.wander_steps = config.get("BEHAVIOR", {}).get("WANDER_STEPS", 0)
         self.extra_wait = config.get("BEHAVIOR", {}).get("EXTRA_WAIT", 0.3)
         self.sleep_mult = config.get("BEHAVIOR", {}).get("SLEEP_MULT", 1.5)

@@ -15,7 +15,7 @@ from helper.exceptions import TooManyEmptyResponses
 from .location import distance_in_meters, filtered_forts, get_route
 from .poke_utils import get_item_name
 from .walker.base import WalkerFactory
-
+import pdb
 
 class FortWalker(object):
     def __init__(self, parent):
@@ -72,6 +72,13 @@ class FortWalker(object):
         if not self.walker:
             self.walker = self.walker_factory.get_walker(self.parent.config, self)
         return self.walker
+    
+    def should_skip_spin(self):
+        if self.parent.config.stop_spinning_after > 0:
+            if self.parent.inventory.item_count == 0:
+                self.parent.inventory.update_player_inventory()
+            return self.parent.inventory.item_count > self.parent.config.stop_spinning_after
+        return False
 
     def get_forts(self):
         forts = []
@@ -143,7 +150,11 @@ class FortWalker(object):
                 )
                 self.wander_steps = route_data['steps']
             elif nearest_fort_dis <= 40.00:
-                self.do_fort_spin(nearest_fort, player_postion=self.parent.api.get_position(),
+                # pdb.set_trace()
+                if self.should_skip_spin():
+                    self.log.info("Enough resources. No need to spin fort.")
+                else:
+                    self.do_fort_spin(nearest_fort, player_postion=self.parent.api.get_position(),
                                   fort_distance=nearest_fort_dis)
                 if 'lure_info' in nearest_fort and self.parent.should_catch_pokemon:
                     self.parent.poke_catcher.disk_encounter_pokemon(nearest_fort['lure_info'])
