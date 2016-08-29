@@ -42,6 +42,7 @@ class Config(object):
         self.catch_pokemon_limit = config.get("BEHAVIOR", {}).get("CATCH_POKEMON_LIMIT", -1)
         self.fort_spin_limit = config.get("BEHAVIOR", {}).get("FORT_SPIN_LIMIT", -1)
 
+        self.dont_skip_after = config.get("CAPTURE", {}).get("DONT_SKIP_AFTER", 10)
         self.should_catch_pokemon = config.get("CAPTURE", {}).get("CATCH_POKEMON", True)
         self.max_catch_attempts = config.get("CAPTURE", {}).get("MAX_CATCH_ATTEMPTS", 10)
         self.min_failed_attempts_before_using_berry = config.get("CAPTURE", {}).get("MIN_FAILED_ATTEMPTS_BEFORE_USING_BERRY", 3)
